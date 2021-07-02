@@ -1,7 +1,6 @@
 #include "debugmenu.h"
 
 HMODULE dllModule;
-int gtaversion = -1;
 
 CControllerConfigManager *ctrldummy = nil;
 
@@ -124,41 +123,28 @@ readTGA(int res)
  * Debug menu
  */
 
-void (*Render2dStuff_orig)(void);
+void (*Render_orig)(unsigned long);
 void
-Render2dStuff(void)
+Render(unsigned long t)
 {
-	Render2dStuff_orig();
+	Render_orig(t);
+	((void (__cdecl *)(long))0x5F5A80)(0);
 	DebugMenuRender();
+	((void (__cdecl *)(long))0x5F5A80)(1);
 }
 
-void (*CCutsceneMgr__Update_orig)(void);
-void
-CCutsceneMgr__Update(void)
+void (__thiscall *Update_orig)(void *);
+void __fastcall Update(void *This)
 {
 	DebugMenuProcess();
-	CCutsceneMgr__Update_orig();
+	Update_orig(This);
 }
 
 void
-patchSA10(void)
+patchMH(void)
 {
-	InterceptCall(&Render2dStuff_orig, Render2dStuff, 0x53EB12);
-	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, 0x53BF28);
-}
-
-void
-patchVC(void)
-{
-	InterceptCall(&Render2dStuff_orig, Render2dStuff, AddressByVersion<uintptr>(0, 0, 0, 0x4A608E, 0x4A60AE, 0x4A5F5E, 0));
-	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, AddressByVersion<uintptr>(0, 0, 0, 0x4A4417, 0x4A4437, 0x4A42D7, 0));
-}
-
-void
-patchIII(void)
-{	
-	InterceptCall(&Render2dStuff_orig, Render2dStuff, AddressByVersion<uintptr>(0x48E642, 0x48E702, 0x48E692, 0, 0, 0, 0));
-	InterceptCall(&CCutsceneMgr__Update_orig, CCutsceneMgr__Update, AddressByVersion<uintptr>(0x48C888, 0x48C988, 0x48C918, 0, 0, 0, 0));
+	InterceptCall(&Render_orig, Render, 0x5F2C1A);
+	InterceptVmethod(&Update_orig, Update, 0x737168);
 }
 
 BOOL WINAPI
@@ -167,17 +153,8 @@ DllMain(HINSTANCE hInst, DWORD reason, LPVOID)
 	if(reason == DLL_PROCESS_ATTACH){
 		dllModule = hInst;
 
-		AddressByVersion<uint32_t>(0, 0, 0, 0, 0, 0, 0);
-#if defined (GTA3)
-		if(isIII())
-			patchIII();
-#elif defined (GTAVC)
-		if(isVC())
-			patchVC();
-#elif defined (GTASA)
-		if(gtaversion == SA_10)
-			patchSA10();
-#endif
+		patchMH();
+
 	}
 
 	return TRUE;

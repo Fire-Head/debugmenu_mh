@@ -1,53 +1,426 @@
 #include "debugmenu.h"
 
-// GTA
+// MH
 
-void **&RwEngineInst = *AddressByVersion<void***>(0x661228, 0x661228, 0x671248, 0x7870C0, 0x7870C8, 0x7860C8, 0xC97B24);
+void **&RwEngineInst = *(void***)0x82279C;
 
-int &CTimer::m_snTimeInMilliseconds = *AddressByVersion<int*>(0x885B48, 0x885AF8, 0x895C38, 0x974B2C, 0x974B34, 0x973B34, 0xB7CB84);
+unsigned int &CGameTime::ms_currGameTime = *(unsigned int*)0x756270;
 
-CMouseControllerState &CPad::NewMouseControllerState = *(CMouseControllerState*)AddressByVersion<uint32_t>(0x8809F0, 0x8809A0, 0x890AE0, 0x94D788, 0x94D790, 0x94C790, 0xB73418);
-CMouseControllerState &CPad::OldMouseControllerState = *(CMouseControllerState*)AddressByVersion<uint32_t>(0x8472A0, 0x8472A0, 0x8573E0, 0x936908, 0x936910, 0x935910, 0xB7342C);
+CKeyState *CInputManager::m_keysPressed = (CKeyState*)0x725698;
+CMouseState &CInputManager::m_mouseState = *(CMouseState*)0x72568C;
 
-static uint32_t CPad__GetPad_A = AddressByVersion<uint32_t>(0x492F60, 0x493020, 0x492FB0, 0x4AB060, 0x4AB080, 0x4AAF30, 0x53FB70);
-WRAPPER CPad *CPad::GetPad(int id) { VARJMP(CPad__GetPad_A); }
+CMouseControllerState &CPad::NewMouseControllerState = *(CMouseControllerState*)0x7E9100;
+CMouseControllerState &CPad::OldMouseControllerState = *(CMouseControllerState*)0x7E9110;
 
-static uint32_t CControllerConfigManager__GetIsKeyboardKeyDown_A = AddressByVersion<uint32_t>(0x58D2A0, 0x58D590, 0x58D480, 0x617E10, 0x617DF0, 0x617A30, 0x52DDB0);
-WRAPPER bool CControllerConfigManager::GetIsKeyboardKeyDown(RsKeyCodes key) { VARJMP(CControllerConfigManager__GetIsKeyboardKeyDown_A); }
-static uint32_t CControllerConfigManager__GetIsKeyboardKeyJustDown_A = AddressByVersion<uint32_t>(0x58D8A0, 0x58DB90, 0x58DA80, 0x617430, 0x617410, 0x617050, 0x52E450);
-WRAPPER bool CControllerConfigManager::GetIsKeyboardKeyJustDown(RsKeyCodes key) { VARJMP(CControllerConfigManager__GetIsKeyboardKeyJustDown_A); }
+CKeyboardState &CPad::NewKeyState = *(CKeyboardState*)0x7E9130;
+CKeyboardState &CPad::OldKeyState = *(CKeyboardState*)0x7E93A0;
 
-CMousePointerStateHelper &MousePointerStateHelper = *AddressByVersion<CMousePointerStateHelper*>(0x95CC8C, 0x95CE44, 0x96CF84, 0xA10A4C, 0xA10A54, 0xA0FA54, 0xBA6744);
+WRAPPER RwRaster *RwRasterCreate(RwInt32, RwInt32, RwInt32, RwInt32) { EAXJMP(0x63CED0); }
+WRAPPER RwRaster *RwRasterSetFromImage(RwRaster*, RwImage*) { EAXJMP(0x62F1A0); }
+WRAPPER RwImage *RwImageFindRasterFormat(RwImage*, RwInt32, RwInt32*, RwInt32*, RwInt32*, RwInt32*) { EAXJMP(0x62F1D0); }
+WRAPPER RwBool RwImageDestroy(RwImage*) { EAXJMP(0x62DD70); }
+WRAPPER RwImage *RwImageCreate(RwInt32, RwInt32, RwInt32) { EAXJMP(0x62DD10); }
+WRAPPER RwImage *RwImageAllocatePixels(RwImage *) { EAXJMP(0x62DDD0); }
 
-//
-// from SkyGfx:
-//
 
-static uint32_t RwRasterCreate_A = AddressByVersion<uint32_t>(0x5AD930, 0x5ADBF0, 0x5B0580, 0x655490, 0x6554E0, 0x654440, 0x7FB230);
-WRAPPER RwRaster *RwRasterCreate(RwInt32, RwInt32, RwInt32, RwInt32) { VARJMP(RwRasterCreate_A); }
-static uint32_t RwRasterSetFromImage_A = AddressByVersion<uint32_t>(0x5BBF50, 0x5BC210, 0x5C0BF0, 0x6602B0, 0x660300, 0x65F260, 0x804290);
-WRAPPER RwRaster *RwRasterSetFromImage(RwRaster*, RwImage*) { VARJMP(RwRasterSetFromImage_A); }
+bool CControllerConfigManager::GetIsKeyboardKeyDown(RsKeyCodes keycode)
+{
+	if (keycode < 255)
+	{
+		if (CPad::GetPad(PAD1)->GetChar(keycode))
+			return true;
+	}
 
-static uint32_t RwImageFindRasterFormat_A = AddressByVersion<uint32_t>(0x5BBF80, 0x5BC240, 0x5C0C40, 0x6602E0, 0x660330, 0x65F290, 0x8042C0);
-WRAPPER RwImage *RwImageFindRasterFormat(RwImage*, RwInt32, RwInt32*, RwInt32*, RwInt32*, RwInt32*) { VARJMP(RwImageFindRasterFormat_A); }
-static uint32_t RwImageDestroy_A = AddressByVersion<uint32_t>(0x5A9180, 0x5A9440, 0x5AB6A0, 0x6512B0, 0x651300, 0x650260, 0x802740);
-WRAPPER RwBool RwImageDestroy(RwImage*) { VARJMP(RwImageDestroy_A); }
+	for (int32 i = 0; i < 12; i++)
+	{
+		if (i + rsF1 == keycode)
+		{
+			if (CPad::GetPad(PAD1)->GetF(i))
+				return true;
+		}
+	}
 
-// Macros in newer RW
-#ifndef GTASA
-static uint32_t RwIm2DGetNearScreenZ_A = AddressByVersion<uint32_t>(0x5A43A0, 0x5A4660, 0x5A5340, 0x649B80, 0x649BD0, 0x648B30, 0);
-WRAPPER RwReal RwIm2DGetNearScreenZ(void) { VARJMP(RwIm2DGetNearScreenZ_A); }
-static uint32_t RwIm2DRenderIndexedPrimitive_A = AddressByVersion<uint32_t>(0x5A4440, 0x5A4700, 0x5A5440, 0x649C20, 0x649C70, 0x648BD0, 0);
-WRAPPER RwBool RwIm2DRenderIndexedPrimitive(RwPrimitiveType, RwIm2DVertex*, RwInt32, RwImVertexIndex*, RwInt32) { VARJMP(RwIm2DRenderIndexedPrimitive_A); }
+	switch (keycode)
+	{
+	case rsESC:
+		if (CPad::GetPad(PAD1)->GetEscape())
+			return true;
+		break;
+	case rsINS:
+		if (CPad::GetPad(PAD1)->GetInsert())
+			return true;
+		break;
+	case rsDEL:
+		if (CPad::GetPad(PAD1)->GetDelete())
+			return true;
+		break;
+	case rsHOME:
+		if (CPad::GetPad(PAD1)->GetHome())
+			return true;
+		break;
+	case rsEND:
+		if (CPad::GetPad(PAD1)->GetEnd())
+			return true;
+		break;
+	case rsPGUP:
+		if (CPad::GetPad(PAD1)->GetPageUp())
+			return true;
+		break;
+	case rsPGDN:
+		if (CPad::GetPad(PAD1)->GetPageDown())
+			return true;
+		break;
+	case rsUP:
+		if (CPad::GetPad(PAD1)->GetUp())
+			return true;
+		break;
+	case rsDOWN:
+		if (CPad::GetPad(PAD1)->GetDown())
+			return true;
+		break;
+	case rsLEFT:
+		if (CPad::GetPad(PAD1)->GetLeft())
+			return true;
+		break;
+	case rsRIGHT:
+		if (CPad::GetPad(PAD1)->GetRight())
+			return true;
+		break;
+	case rsSCROLL:
+		if (CPad::GetPad(PAD1)->GetScrollLock())
+			return true;
+		break;
+	case rsPAUSE:
+		if (CPad::GetPad(PAD1)->GetPause())
+			return true;
+		break;
+	case rsNUMLOCK:
+		if (CPad::GetPad(PAD1)->GetNumLock())
+			return true;
+		break;
+	case rsDIVIDE:
+		if (CPad::GetPad(PAD1)->GetDivide())
+			return true;
+		break;
+	case rsTIMES:
+		if (CPad::GetPad(PAD1)->GetTimes())
+			return true;
+		break;
+	case rsMINUS:
+		if (CPad::GetPad(PAD1)->GetMinus())
+			return true;
+		break;
+	case rsPLUS:
+		if (CPad::GetPad(PAD1)->GetPlus())
+			return true;
+		break;
+	case rsPADENTER:
+		if (CPad::GetPad(PAD1)->GetPadEnter())
+			return true;
+		break;
+	case rsPADDEL:
+		if (CPad::GetPad(PAD1)->GetPadDel())
+			return true;
+		break;
+	case rsPADEND:
+		if (CPad::GetPad(PAD1)->GetPad1())
+			return true;
+		break;
+	case rsPADDOWN:
+		if (CPad::GetPad(PAD1)->GetPad2())
+			return true;
+		break;
+	case rsPADPGDN:
+		if (CPad::GetPad(PAD1)->GetPad3())
+			return true;
+		break;
+	case rsPADLEFT:
+		if (CPad::GetPad(PAD1)->GetPad4())
+			return true;
+		break;
+	case rsPAD5:
+		if (CPad::GetPad(PAD1)->GetPad5())
+			return true;
+		break;
+	case rsPADRIGHT:
+		if (CPad::GetPad(PAD1)->GetPad6())
+			return true;
+		break;
+	case rsPADHOME:
+		if (CPad::GetPad(PAD1)->GetPad7())
+			return true;
+		break;
+	case rsPADUP:
+		if (CPad::GetPad(PAD1)->GetPad8())
+			return true;
+		break;
+	case rsPADPGUP:
+		if (CPad::GetPad(PAD1)->GetPad9())
+			return true;
+		break;
+	case rsPADINS:
+		if (CPad::GetPad(PAD1)->GetPad0())
+			return true;
+		break;
+	case rsBACKSP:
+		if (CPad::GetPad(PAD1)->GetBackspace())
+			return true;
+		break;
+	case rsTAB:
+		if (CPad::GetPad(PAD1)->GetTab())
+			return true;
+		break;
+	case rsCAPSLK:
+		if (CPad::GetPad(PAD1)->GetCapsLock())
+			return true;
+		break;
+	case rsENTER:
+		if (CPad::GetPad(PAD1)->GetEnter())
+			return true;
+		break;
+	case rsLSHIFT:
+		if (CPad::GetPad(PAD1)->GetLeftShift())
+			return true;
+		break;
+	case rsSHIFT:
+		if (CPad::GetPad(PAD1)->GetShift())
+			return true;
+		break;
+	case rsRSHIFT:
+		if (CPad::GetPad(PAD1)->GetRightShift())
+			return true;
+		break;
+	case rsLCTRL:
+		if (CPad::GetPad(PAD1)->GetLeftCtrl())
+			return true;
+		break;
+	case rsRCTRL:
+		if (CPad::GetPad(PAD1)->GetRightCtrl())
+			return true;
+		break;
+	case rsLALT:
+		if (CPad::GetPad(PAD1)->GetLeftAlt())
+			return true;
+		break;
+	case rsRALT:
+		if (CPad::GetPad(PAD1)->GetRightAlt())
+			return true;
+		break;
+	case rsLWIN:
+		if (CPad::GetPad(PAD1)->GetLeftWin())
+			return true;
+		break;
+	case rsRWIN:
+		if (CPad::GetPad(PAD1)->GetRightWin())
+			return true;
+		break;
+	case rsAPPS:
+		if (CPad::GetPad(PAD1)->GetApps())
+			return true;
+		break;
+	default: break;
+	}
 
-static uint32_t RwRenderStateGet_A = AddressByVersion<uint32_t>(0x5A4410, 0x5A46D0, 0x5A53B0, 0x649BF0, 0x649C40, 0x648BA0, 0);
-WRAPPER RwBool RwRenderStateGet(RwRenderState, void*) { VARJMP(RwRenderStateGet_A); }
-static uint32_t RwRenderStateSet_A = AddressByVersion<uint32_t>(0x5A43C0, 0x5A4680, 0x5A5360, 0x649BA0, 0x649BF0, 0x648B50, 0);
-WRAPPER RwBool RwRenderStateSet(RwRenderState, void*) { VARJMP(RwRenderStateSet_A); }
-#endif
+	return false;
+}
 
-// ADDRESS III and VC 1.0
-static uint32_t RwImageCreate_A = AddressByVersion<uint32_t>(0x5A9120, 0x5A93E0, 0x5AB620, 0x651250, 0x6512A0, 0x650200, 0x8026E0);
-WRAPPER RwImage *RwImageCreate(RwInt32, RwInt32, RwInt32) { VARJMP(RwImageCreate_A); }
-static uint32_t RwImageAllocatePixels_A = AddressByVersion<uint32_t>(0x5A91E0, 0x5A94A0, 0x5AB710, 0x651310, 0x651360, 0x6502C0, 0x8027A0);
-WRAPPER RwImage *RwImageAllocatePixels(RwImage *) { VARJMP(RwImageAllocatePixels_A); }
+bool CControllerConfigManager::GetIsKeyboardKeyJustDown(RsKeyCodes keycode)
+{
+	if (keycode < 255)
+	{
+		if (CPad::GetPad(PAD1)->GetCharJustDown(keycode))
+			return true;
+	}
+
+	for (int32 i = 0; i < 12; i++)
+	{
+		if (i + rsF1 == keycode)
+		{
+			if (CPad::GetPad(PAD1)->GetFJustDown(i))
+				return true;
+		}
+	}
+
+	switch (keycode)
+	{
+	case rsESC:
+		if (CPad::GetPad(PAD1)->GetEscapeJustDown())
+			return true;
+		break;
+	case rsINS:
+		if (CPad::GetPad(PAD1)->GetInsertJustDown())
+			return true;
+		break;
+	case rsDEL:
+		if (CPad::GetPad(PAD1)->GetDeleteJustDown())
+			return true;
+		break;
+	case rsHOME:
+		if (CPad::GetPad(PAD1)->GetHomeJustDown())
+			return true;
+		break;
+	case rsEND:
+		if (CPad::GetPad(PAD1)->GetEndJustDown())
+			return true;
+		break;
+	case rsPGUP:
+		if (CPad::GetPad(PAD1)->GetPageUpJustDown())
+			return true;
+		break;
+	case rsPGDN:
+		if (CPad::GetPad(PAD1)->GetPageDownJustDown())
+			return true;
+		break;
+	case rsUP:
+		if (CPad::GetPad(PAD1)->GetUpJustDown())
+			return true;
+		break;
+	case rsDOWN:
+		if (CPad::GetPad(PAD1)->GetDownJustDown())
+			return true;
+		break;
+	case rsLEFT:
+		if (CPad::GetPad(PAD1)->GetLeftJustDown())
+			return true;
+		break;
+	case rsRIGHT:
+		if (CPad::GetPad(PAD1)->GetRightJustDown())
+			return true;
+		break;
+	case rsSCROLL:
+		if (CPad::GetPad(PAD1)->GetScrollLockJustDown())
+			return true;
+		break;
+	case rsPAUSE:
+		if (CPad::GetPad(PAD1)->GetPauseJustDown())
+			return true;
+		break;
+	case rsNUMLOCK:
+		if (CPad::GetPad(PAD1)->GetNumLockJustDown())
+			return true;
+		break;
+	case rsDIVIDE:
+		if (CPad::GetPad(PAD1)->GetDivideJustDown())
+			return true;
+		break;
+	case rsTIMES:
+		if (CPad::GetPad(PAD1)->GetTimesJustDown())
+			return true;
+		break;
+	case rsMINUS:
+		if (CPad::GetPad(PAD1)->GetMinusJustDown())
+			return true;
+		break;
+	case rsPLUS:
+		if (CPad::GetPad(PAD1)->GetPlusJustDown())
+			return true;
+		break;
+	case rsPADENTER:
+		if (CPad::GetPad(PAD1)->GetPadEnterJustDown())
+			return true;
+		break;
+	case rsPADDEL:
+		if (CPad::GetPad(PAD1)->GetPadDelJustDown())
+			return true;
+		break;
+	case rsPADEND:
+		if (CPad::GetPad(PAD1)->GetPad1JustDown())
+			return true;
+		break;
+	case rsPADDOWN:
+		if (CPad::GetPad(PAD1)->GetPad2JustDown())
+			return true;
+		break;
+	case rsPADPGDN:
+		if (CPad::GetPad(PAD1)->GetPad3JustDown())
+			return true;
+		break;
+	case rsPADLEFT:
+		if (CPad::GetPad(PAD1)->GetPad4JustDown())
+			return true;
+		break;
+	case rsPAD5:
+		if (CPad::GetPad(PAD1)->GetPad5JustDown())
+			return true;
+		break;
+	case rsPADRIGHT:
+		if (CPad::GetPad(PAD1)->GetPad6JustDown())
+			return true;
+		break;
+	case rsPADHOME:
+		if (CPad::GetPad(PAD1)->GetPad7JustDown())
+			return true;
+		break;
+	case rsPADUP:
+		if (CPad::GetPad(PAD1)->GetPad8JustDown())
+			return true;
+		break;
+	case rsPADPGUP:
+		if (CPad::GetPad(PAD1)->GetPad9JustDown())
+			return true;
+		break;
+	case rsPADINS:
+		if (CPad::GetPad(PAD1)->GetPad0JustDown())
+			return true;
+		break;
+	case rsBACKSP:
+		if (CPad::GetPad(PAD1)->GetBackspaceJustDown())
+			return true;
+		break;
+	case rsTAB:
+		if (CPad::GetPad(PAD1)->GetTabJustDown())
+			return true;
+		break;
+	case rsCAPSLK:
+		if (CPad::GetPad(PAD1)->GetCapsLockJustDown())
+			return true;
+		break;
+	case rsENTER:
+		if (CPad::GetPad(PAD1)->GetReturnJustDown())
+			return true;
+		break;
+	case rsLSHIFT:
+		if (CPad::GetPad(PAD1)->GetLeftShiftJustDown())
+			return true;
+		break;
+	case rsSHIFT:
+		if (CPad::GetPad(PAD1)->GetShiftJustDown())
+			return true;
+		break;
+	case rsRSHIFT:
+		if (CPad::GetPad(PAD1)->GetRightShiftJustDown())
+			return true;
+		break;
+	case rsLCTRL:
+		if (CPad::GetPad(PAD1)->GetLeftCtrlJustDown())
+			return true;
+		break;
+	case rsRCTRL:
+		if (CPad::GetPad(PAD1)->GetRightCtrlJustDown())
+			return true;
+		break;
+	case rsLALT:
+		if (CPad::GetPad(PAD1)->GetLeftAltJustDown())
+			return true;
+		break;
+	case rsRALT:
+		if (CPad::GetPad(PAD1)->GetRightAltJustDown())
+			return true;
+		break;
+	case rsLWIN:
+		if (CPad::GetPad(PAD1)->GetLeftWinJustDown())
+			return true;
+		break;
+	case rsRWIN:
+		if (CPad::GetPad(PAD1)->GetRightWinJustDown())
+			return true;
+		break;
+	case rsAPPS:
+		if (CPad::GetPad(PAD1)->GetAppsJustDown())
+			return true;
+		break;
+	default: break;
+	}
+
+	return false;
+}

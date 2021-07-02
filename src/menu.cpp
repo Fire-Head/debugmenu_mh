@@ -542,7 +542,7 @@ processInput(void)
 	// Implement auto-repeat
 #define X(var, keycode) \
 	if(var){ \
-		repeattime = downtime = CTimer::m_snTimeInMilliseconds; \
+		repeattime = downtime = CGameTime::ms_currGameTime; \
 		lastkeydown = keycode; \
 		keyptr = &var; \
 	}
@@ -550,7 +550,7 @@ processInput(void)
 #undef X
 	if(lastkeydown){
 		if(KEYDOWN(lastkeydown)){
-			int curtime = CTimer::m_snTimeInMilliseconds;
+			int curtime = CGameTime::ms_currGameTime;
 			if(curtime - downtime > REPEATDELAY){
 				if(curtime - repeattime > REPEATINTERVAL){
 					repeattime = curtime;
@@ -565,7 +565,7 @@ processInput(void)
 	// Also for mouse buttons
 #define X(var, num)							  \
 	if(var){							  \
-		repeattime = downtime = CTimer::m_snTimeInMilliseconds;	  \
+		repeattime = downtime = CGameTime::ms_currGameTime;	  \
 		lastbuttondown = num;					  \
 		buttonptr = &var;					  \
 	}
@@ -573,7 +573,7 @@ processInput(void)
 #undef X
 	if(lastbuttondown){
 		if(buttondown[lastbuttondown-1]){
-			int curtime = CTimer::m_snTimeInMilliseconds;
+			int curtime = CGameTime::ms_currGameTime;
 			if(curtime - downtime > REPEATDELAY){
 				if(curtime - repeattime > REPEATINTERVAL){
 					repeattime = curtime;
@@ -663,10 +663,10 @@ processInput(void)
 		activeMenu = mouseOverEntry->menu;
 		activeMenu->changeSelection(mouseOverEntry);
 	}
-	if(KEYJUSTDOWN(rsEXTENTER)){
+	if(KEYJUSTDOWN(rsENTER)){
 		if(activeMenu->selectedEntry && activeMenu->selectedEntry->type == MENUSUB)
 			activeMenu = ((MenuEntry_Sub*)activeMenu->selectedEntry)->submenu;
-	}else if(KEYJUSTDOWN(rsBACK)){
+	}else if(KEYJUSTDOWN(rsBACKSP)){
 		if(activeMenu->parent)
 			activeMenu = activeMenu->parent;
 	}else{
@@ -681,52 +681,54 @@ processInput(void)
 void
 updateMouse(void)
 {
-	CPad *pad = CPad::GetPad(0);
 	int dirX = 1;
 	int dirY = 1;
 
-	if(MousePointerStateHelper.m_bInvertHorizontally) dirX = -1;
-	if(MousePointerStateHelper.m_bInvertVertically) dirY = -1;
+	//if(MousePointerStateHelper.m_bInvertHorizontally) dirX = -1;
+	//if(MousePointerStateHelper.m_bInvertVertically) dirY = -1;
 
-	mouseX += pad->NewMouseControllerState.X*dirX;
-	mouseY += pad->NewMouseControllerState.Y*dirY;
+	mouseX += CPad::NewMouseControllerState.X*dirX;
+	mouseY += CPad::NewMouseControllerState.Y*dirY;
 
 	if(mouseX < 0.0f) mouseX = 0.0f;
 	if(mouseY < 0.0f) mouseY = 0.0f;
 	if(mouseX >= screenWidth) mouseX = screenWidth;
 	if(mouseY >= screenHeight) mouseY = screenHeight;
 
-	button1justdown = pad->NewMouseControllerState.lmb && !pad->OldMouseControllerState.lmb;
-	button2justdown = pad->NewMouseControllerState.mmb && !pad->OldMouseControllerState.mmb;
-	button3justdown = pad->NewMouseControllerState.rmb && !pad->OldMouseControllerState.rmb;
-	buttondown[0] = pad->NewMouseControllerState.lmb;
-	buttondown[1] = pad->NewMouseControllerState.mmb;
-	buttondown[2] = pad->NewMouseControllerState.rmb;
+	button1justdown = CPad::NewMouseControllerState.lmb && !CPad::OldMouseControllerState.lmb;
+	button2justdown = CPad::NewMouseControllerState.mmb && !CPad::OldMouseControllerState.mmb;
+	button3justdown = CPad::NewMouseControllerState.rmb && !CPad::OldMouseControllerState.rmb;
+	buttondown[0] = CPad::NewMouseControllerState.lmb;
+	buttondown[1] = CPad::NewMouseControllerState.mmb;
+	buttondown[2] = CPad::NewMouseControllerState.rmb;
 
 	// Zero the mouse position so the camera won't move
-	pad->NewMouseControllerState.X = 0.0f;
-	pad->NewMouseControllerState.Y = 0.0f;
+	CInputManager::m_mouseState.X=0;
+	CInputManager::m_mouseState.Y=0;
+	CInputManager::m_mouseState.MouseButton=0;
 }
 
 EXPORT void
 DebugMenuProcess(void)
 {
 	// We only process some input here
-
-	CPad *pad = CPad::GetPad(0);
 	if(CTRLJUSTDOWN('M'))
 		menuOn = !menuOn;
 	if(!menuOn)
 		return;
-
-	pad->DisablePlayerControls = 1;
+	
+	for ( int i = 0; i < 10; i++ )
+	{
+		CInputManager::m_keysPressed[i].keyCode = 255;
+		CInputManager::m_keysPressed[i].bDown = 0;
+		CInputManager::m_keysPressed[i].bUp = 0;
+	}
 	// TODO: this could happen earlier
 	if(!menuInitialized){
 		initDebug();
 		menuInitialized = 1;
 	}
 	updateMouse();
-
 }
 
 EXPORT void
