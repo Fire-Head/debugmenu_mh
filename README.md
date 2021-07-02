@@ -1,0 +1,1 @@
+It's a port of aap's debug menu for Manhunt, useful thing in terms of convenience. Adds simple gui for various things (almost like imgui).
